@@ -25,6 +25,7 @@ import {
 import {
   WORKFLOW_ITERATION_COLLAPSED_HEIGHT,
   WORKFLOW_ITERATION_COLLAPSED_WIDTH,
+  type WorkflowNodeData,
   type WorkflowNodeKind,
 } from "@ora/workflow-mock";
 import { toast } from "@ora/ui";
@@ -120,9 +121,9 @@ const WORKFLOW_ANNOTATION_HEIGHT = 140;
 const iterationPresentationDataCache = new Map<
   string,
   {
-    source: WorkflowCanvasNode["data"];
+    source: WorkflowNodeData;
     count: number;
-    data: WorkflowCanvasNode["data"];
+    data: WorkflowNodeData;
   }
 >();
 
@@ -134,7 +135,7 @@ const projectedCanvasNodeCache = new Map<
   string,
   {
     source: WorkflowCanvasNode;
-    data: WorkflowCanvasNode["data"];
+    data: WorkflowNodeData | WorkflowCanvasNode["data"];
     extent: "parent" | undefined;
     expandParent: boolean | undefined;
     zIndex: number;
