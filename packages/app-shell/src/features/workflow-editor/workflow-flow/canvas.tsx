@@ -113,6 +113,36 @@ const CONNECTION_LINE_STYLE = {
 const WORKFLOW_ANNOTATION_WIDTH = 240;
 const WORKFLOW_ANNOTATION_HEIGHT = 140;
 
+/**
+ * Caches iteration presentation `data` across canvas projections. Module-scoped
+ * (not a render ref) so `useMemo` can reuse entries without `react-hooks/refs`.
+ */
+const iterationPresentationDataCache = new Map<
+  string,
+  {
+    source: WorkflowCanvasNode["data"];
+    count: number;
+    data: WorkflowCanvasNode["data"];
+  }
+>();
+
+/**
+ * Reuses projected RF node objects for undragged cards. Remapping `{...node}`
+ * every pointer move breaks `memo` on Agent/Start views.
+ */
+const projectedCanvasNodeCache = new Map<
+  string,
+  {
+    source: WorkflowCanvasNode;
+    data: WorkflowCanvasNode["data"];
+    extent: "parent" | undefined;
+    expandParent: boolean | undefined;
+    zIndex: number;
+    hidden: boolean;
+    projected: WorkflowCanvasNode;
+  }
+>();
+
 /** Finds the workflow card under a pointer so the whole card remains a forgiving drop zone. */
 function workflowNodeAtClientPoint(
   clientX: number,
@@ -233,43 +263,14 @@ function WorkflowCanvasInner({
     }
     return counts;
   }, [nodes]);
-  // Reuse iteration presentation `data` while authored fields and member counts
-  // are unchanged so memoized node views skip re-render on sibling drag frames.
-  const iterationPresentationDataRef = useRef(
-    new Map<
-      string,
-      {
-        source: WorkflowCanvasNode["data"];
-        count: number;
-        data: WorkflowCanvasNode["data"];
-      }
-    >(),
-  );
-  // Projected RF nodes must keep object identity for undragged cards. Remapping
-  // `{...node}` every pointer move breaks `memo` on Agent/Start views and is the
-  // main source of canvas-wide drag jitter on otherwise light graphs.
-  const projectedCanvasNodeRef = useRef(
-    new Map<
-      string,
-      {
-        source: WorkflowCanvasNode;
-        data: WorkflowCanvasNode["data"];
-        extent: "parent" | undefined;
-        expandParent: boolean | undefined;
-        zIndex: number;
-        hidden: boolean;
-        projected: WorkflowCanvasNode;
-      }
-    >(),
-  );
   const canvasNodes = useMemo<WorkflowCanvasNode[]>(() => {
     const iterationIds = new Set(
       nodes
         .filter((node) => node.data.kind === "iteration")
         .map((node) => node.id),
     );
-    const presentationCache = iterationPresentationDataRef.current;
-    const projectionCache = projectedCanvasNodeRef.current;
+    const presentationCache = iterationPresentationDataCache;
+    const projectionCache = projectedCanvasNodeCache;
     const liveIds = new Set<string>();
     const executableNodes = containWorkflowCanvasNodes(nodes).map((node) => {
       liveIds.add(node.id);
